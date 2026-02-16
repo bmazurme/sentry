@@ -5,3 +5,8 @@
 - Nestjs (backend)
 - InfluxDB
 - Grafana (dashboard)
+
+# controller
+- esp32
+- 801S
+- max4466

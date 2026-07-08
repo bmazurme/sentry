@@ -74,12 +74,12 @@ export function AdminPage() {
   return (
     <div className="max-w-3xl mx-auto px-6 py-8 space-y-8">
       {error && (
-        <div className="bg-red-900/30 border border-red-800 rounded-lg px-4 py-3 text-red-400 text-sm">
+        <div className="bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-800 rounded-lg px-4 py-3 text-red-600 dark:text-red-400 text-sm">
           {error}
         </div>
       )}
       {success && (
-        <div className="bg-green-900/30 border border-green-800 rounded-lg px-4 py-3 text-green-400 text-sm">
+        <div className="bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-800 rounded-lg px-4 py-3 text-green-700 dark:text-green-400 text-sm">
           {success}
         </div>
       )}
@@ -91,7 +91,7 @@ export function AdminPage() {
         </h2>
         <form
           onSubmit={handleSubmit}
-          className="bg-gray-800 rounded-xl border border-gray-700 p-6 space-y-4"
+          className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 space-y-4"
         >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="MQTT Topic *">
@@ -122,7 +122,7 @@ export function AdminPage() {
                 <select
                   value=""
                   onChange={e => setForm(f => ({ ...f, unit: e.target.value }))}
-                  className="bg-gray-700 border border-gray-600 rounded-lg text-gray-300 text-sm px-2 focus:outline-none focus:border-blue-500"
+                  className="bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 text-sm px-2 focus:outline-none focus:border-blue-500"
                 >
                   <option value="" disabled>пресет</option>
                   {UNIT_PRESETS.map(u => (
@@ -165,24 +165,24 @@ export function AdminPage() {
             {sensors.map(s => (
               <li
                 key={s.id}
-                className="bg-gray-800 border border-gray-700 rounded-xl px-5 py-4 flex items-center justify-between gap-4"
+                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-5 py-4 flex items-center justify-between gap-4"
               >
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="text-white font-medium truncate">{s.name}</span>
-                    <span className="text-xs text-gray-500 bg-gray-700 px-1.5 py-0.5 rounded font-mono flex-shrink-0">
+                    <span className="text-gray-900 dark:text-white font-medium truncate">{s.name}</span>
+                    <span className="text-xs text-gray-500 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded font-mono flex-shrink-0">
                       {s.unit}
                     </span>
                   </div>
                   <p className="text-gray-500 text-xs font-mono mt-0.5 truncate">{s.topic}</p>
                   {s.description && (
-                    <p className="text-gray-600 text-xs mt-1 truncate">{s.description}</p>
+                    <p className="text-gray-500 dark:text-gray-600 text-xs mt-1 truncate">{s.description}</p>
                   )}
                 </div>
                 <button
                   onClick={() => handleDelete(s)}
                   disabled={deletingId === s.id}
-                  className="flex-shrink-0 px-3 py-1.5 text-xs text-red-400 border border-red-900 hover:bg-red-900/30 disabled:opacity-40 rounded-lg transition-colors"
+                  className="flex-shrink-0 px-3 py-1.5 text-xs text-red-500 dark:text-red-400 border border-red-300 dark:border-red-900 hover:bg-red-50 dark:hover:bg-red-900/30 disabled:opacity-40 rounded-lg transition-colors"
                 >
                   {deletingId === s.id ? '...' : 'Удалить'}
                 </button>
@@ -198,11 +198,11 @@ export function AdminPage() {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="text-gray-400 text-xs font-medium block mb-1.5">{label}</span>
+      <span className="text-gray-600 dark:text-gray-400 text-xs font-medium block mb-1.5">{label}</span>
       {children}
     </label>
   );
 }
 
 const inputCls =
-  'w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors';
+  'w-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors';

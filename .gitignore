@@ -1,1 +1,53 @@
+# ---------- OS ----------
 .DS_Store
+Thumbs.db
+
+# ---------- Editors ----------
+.idea/
+.vscode/
+*.swp
+
+# ---------- Node / npm ----------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.npm/
+.pnpm-store/
+
+# ---------- Build output ----------
+dist/
+build/
+*.tsbuildinfo
+
+# ---------- Vite ----------
+.vite/
+frontend/.vite/
+
+# ---------- Env / secrets ----------
+.env
+.env.*
+!.env.example
+
+# ---------- Tests / coverage ----------
+coverage/
+*.lcov
+
+# ---------- Logs ----------
+*.log
+logs/
+
+# ---------- Docker image archives (docker save) ----------
+*.tar
+
+# ---------- Local data volumes ----------
+data/
+influxdb_data/
+postgres_data/
+
+# ---------- Arduino build artifacts ----------
+*.hex
+*.elf
+*.bin
+build/

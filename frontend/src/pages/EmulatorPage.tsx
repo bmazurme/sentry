@@ -57,18 +57,18 @@ export function EmulatorPage({ readings }: Props) {
   return (
     <div className="max-w-3xl mx-auto px-6 py-8 space-y-8">
       {/* Controls */}
-      <section className="bg-gray-800 rounded-xl border border-gray-700 p-6">
+      <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 transition-colors">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-white font-semibold">Эмулятор датчиков</h2>
+            <h2 className="text-gray-900 dark:text-white font-semibold">Эмулятор датчиков</h2>
             <p className="text-gray-500 text-sm mt-0.5">
               Публикует случайные данные в MQTT для всех зарегистрированных датчиков
             </p>
           </div>
           <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-sm ${
             running
-              ? 'bg-green-900/30 border-green-800 text-green-400'
-              : 'bg-gray-700 border-gray-600 text-gray-400'
+              ? 'bg-green-100 dark:bg-green-900/30 border-green-300 dark:border-green-800 text-green-700 dark:text-green-400'
+              : 'bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400'
           }`}>
             <span className={`w-1.5 h-1.5 rounded-full ${running ? 'bg-green-400 animate-pulse' : 'bg-gray-500'}`} />
             {running ? 'Работает' : 'Остановлен'}
@@ -78,10 +78,10 @@ export function EmulatorPage({ readings }: Props) {
         {/* Interval slider */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-2">
-            <label className="text-gray-400 text-xs font-medium uppercase tracking-wide">
+            <label className="text-gray-600 dark:text-gray-400 text-xs font-medium uppercase tracking-wide">
               Интервал публикации
             </label>
-            <span className="text-white text-sm font-mono">
+            <span className="text-gray-900 dark:text-white text-sm font-mono">
               {intervalMs >= 1000 ? `${intervalMs / 1000} с` : `${intervalMs} мс`}
             </span>
           </div>
@@ -109,7 +109,7 @@ export function EmulatorPage({ readings }: Props) {
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                 intervalMs === ms
                   ? 'bg-blue-600 text-white'
-                  : 'bg-gray-700 text-gray-400 hover:text-white'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
               }`}
             >
               {ms >= 1000 ? `${ms / 1000}с` : `${ms}мс`}
@@ -145,18 +145,18 @@ export function EmulatorPage({ readings }: Props) {
               return (
                 <li
                   key={s.topic}
-                  className="bg-gray-800 border border-gray-700 rounded-xl px-5 py-4 flex items-center justify-between gap-4"
+                  className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-5 py-4 flex items-center justify-between gap-4"
                 >
                   <div className="min-w-0">
-                    <p className="text-white font-medium truncate">{s.name}</p>
+                    <p className="text-gray-900 dark:text-white font-medium truncate">{s.name}</p>
                     <p className="text-gray-500 text-xs font-mono mt-0.5 truncate">{s.topic}</p>
                   </div>
                   <div className="text-right flex-shrink-0">
                     {display !== null && display !== undefined ? (
                       <span className={`text-lg font-bold tabular-nums ${
                         isBool
-                          ? display === 1 ? 'text-red-400' : 'text-green-400'
-                          : 'text-white'
+                          ? display === 1 ? 'text-red-500 dark:text-red-400' : 'text-green-600 dark:text-green-400'
+                          : 'text-gray-900 dark:text-white'
                       }`}>
                         {isBool ? (display === 1 ? '1 (да)' : '0 (нет)') : display}
                       </span>

@@ -72,10 +72,15 @@ export function SensorChart({ sensor, latestReading }: Props) {
   const color = isBool ? '#ef4444' : '#3b82f6';
   const gradId = `grad-${sensor.id}`;
 
-  const formatTick = (t: string) =>
+  // Числовой timestamp (мс) для временной оси X — чтобы точки располагались
+  // по фактическому времени, а не равномерно (иначе интервалы между ударами
+  // выглядят одинаковыми независимо от реальных пауз).
+  const chartData = data.map(d => ({ ts: new Date(d.time).getTime(), value: d.value }));
+
+  const formatTick = (t: number) =>
     new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-  const formatLabel = (t: string) =>
+  const formatLabel = (t: number) =>
     new Date(t).toLocaleString([], { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 
   return (
@@ -167,7 +172,7 @@ export function SensorChart({ sensor, latestReading }: Props) {
         </div>
       ) : (
         <ResponsiveContainer width="100%" height={176}>
-          <AreaChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: -24 }}>
+          <AreaChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: -24 }}>
             <defs>
               <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor={color} stopOpacity={0.25} />
@@ -176,7 +181,10 @@ export function SensorChart({ sensor, latestReading }: Props) {
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
             <XAxis
-              dataKey="time"
+              dataKey="ts"
+              type="number"
+              scale="time"
+              domain={['dataMin', 'dataMax']}
               tickFormatter={formatTick}
               tick={{ fill: '#4b5563', fontSize: 11 }}
               interval="preserveStartEnd"
@@ -195,19 +203,19 @@ export function SensorChart({ sensor, latestReading }: Props) {
               }}
               labelStyle={{ color: '#6b7280' }}
               itemStyle={{ color }}
-              labelFormatter={t => formatLabel(t as string)}
+              labelFormatter={t => formatLabel(t as number)}
               formatter={(v: number) => [
                 isBool ? (v === 1 ? 'Обнаружена' : 'Нет') : `${v} ${sensor.unit}`,
                 sensor.name,
               ]}
             />
             <Area
-              type="monotone"
+              type={isBool ? 'stepAfter' : 'monotone'}
               dataKey="value"
               stroke={color}
               strokeWidth={2}
               fill={`url(#${gradId})`}
-              dot={false}
+              dot={isBool ? { r: 2, fill: color } : false}
               isAnimationActive={false}
             />
           </AreaChart>

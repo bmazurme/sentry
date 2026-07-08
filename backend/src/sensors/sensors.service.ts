@@ -36,11 +36,67 @@ export class SensorsService implements OnModuleInit {
         unit: 'bool',
         description: 'Вибрация обнаружена датчиком SW-420',
       },
+      {
+        topic: 'sensor/shock/amplitude',
+        name: 'Пиковая амплитуда удара',
+        unit: 'ADC',
+        description: 'Пиковая амплитуда звука/вибрации с микрофона INMP441 (ESP32-S3)',
+      },
+      {
+        topic: 'sensor/shock/detected',
+        name: 'Удар / резкий всплеск',
+        unit: 'bool',
+        description: 'Обнаружен удар или резкий звуковой всплеск (INMP441)',
+      },
+      {
+        topic: 'sensor/shock/count',
+        name: 'Счётчик ударов',
+        unit: 'count',
+        description: 'Суммарное число зафиксированных ударов (INMP441)',
+      },
+      {
+        topic: 'sensor/shock2/amplitude',
+        name: 'Пиковая амплитуда удара (ESP32-D)',
+        unit: 'ADC',
+        description: 'Пиковая амплитуда звука/вибрации с микрофона INMP441 (ESP32-D / WROOM-32)',
+      },
+      {
+        topic: 'sensor/shock2/detected',
+        name: 'Удар / резкий всплеск (ESP32-D)',
+        unit: 'bool',
+        description: 'Обнаружен удар или резкий звуковой всплеск (INMP441, ESP32-D)',
+      },
+      {
+        topic: 'sensor/shock2/count',
+        name: 'Счётчик ударов (ESP32-D)',
+        unit: 'count',
+        description: 'Суммарное число зафиксированных ударов (INMP441, ESP32-D)',
+      },
+      {
+        topic: 'sensor/shock2/noise',
+        name: 'Уровень шума (ESP32-D)',
+        unit: 'dB',
+        description: 'Приблизительный уровень шума в dB SPL (откалиброван из RMS/dBFS, INMP441, ESP32-D)',
+      },
     ];
 
     for (const s of defaults) {
       const exists = await this.repo.findOneBy({ topic: s.topic });
-      if (!exists) await this.repo.save(s);
+      if (!exists) {
+        await this.repo.save(s);
+      } else if (
+        exists.name !== s.name ||
+        exists.unit !== s.unit ||
+        exists.description !== s.description
+      ) {
+        // Синхронизируем метаданные предустановленных датчиков с кодом
+        // (например, при смене единицы dBFS -> dB после калибровки)
+        await this.repo.update(exists.id, {
+          name: s.name,
+          unit: s.unit,
+          description: s.description,
+        });
+      }
     }
   }
 

@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { fetchSensors } from './api/sensors';
-import { Header, Page } from './components/Header';
+import { Sidebar, Page } from './components/Sidebar';
 import { SensorCard } from './components/SensorCard';
 import { SensorChart } from './components/SensorChart';
 import { useSocket } from './hooks/useSocket';
+import { useTheme } from './hooks/useTheme';
 import { AdminPage } from './pages/AdminPage';
 import { EmulatorPage } from './pages/EmulatorPage';
 import { Sensor } from './types';
@@ -12,6 +13,7 @@ export default function App() {
   const [sensors, setSensors] = useState<Sensor[]>([]);
   const [page, setPage] = useState<Page>('dashboard');
   const { readings, connected } = useSocket();
+  const { theme, toggle: toggleTheme } = useTheme();
 
   useEffect(() => {
     if (page === 'dashboard') {
@@ -20,9 +22,16 @@ export default function App() {
   }, [page]);
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
-      <Header connected={connected} page={page} onNavigate={setPage} />
+    <div className="min-h-screen bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-white transition-colors flex">
+      <Sidebar
+        connected={connected}
+        page={page}
+        onNavigate={setPage}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+      />
 
+      <div className="flex-1 min-w-0">
       {page === 'dashboard' && (
         <main className="max-w-6xl mx-auto px-6 py-8 space-y-10">
           <section>
@@ -46,7 +55,7 @@ export default function App() {
               </h2>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {sensors.map(s => (
-                  <SensorChart key={s.id} sensor={s} latestReading={readings[s.topic]} />
+                  <SensorChart key={s.id} sensor={s} latestReading={readings[s.topic]} theme={theme} />
                 ))}
               </div>
             </section>
@@ -56,6 +65,7 @@ export default function App() {
 
       {page === 'emulator' && <EmulatorPage readings={readings} />}
       {page === 'admin' && <AdminPage />}
+      </div>
     </div>
   );
 }

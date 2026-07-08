@@ -1,22 +1,37 @@
 import { useEffect, useRef, useState } from 'react';
-import { createSensor, deleteSensor, fetchSensors } from '../api/sensors';
+import {
+  createSensor,
+  deleteSensor,
+  fetchCatalog,
+  fetchSensors,
+  fetchTopics,
+  SensorPreset,
+  updateSensor,
+} from '../api/sensors';
 import { Sensor } from '../types';
 
-const UNIT_PRESETS = ['ADC', 'bool', '°C', '%', 'Pa', 'lux', 'ppm', 'm/s²'];
+const UNIT_PRESETS = ['ADC', 'bool', 'count', 'dB', '°C', '%', 'Pa', 'lux', 'ppm', 'm/s²'];
 
 const emptyForm = { topic: '', name: '', unit: '', description: '' };
 
 export function AdminPage() {
   const [sensors, setSensors] = useState<Sensor[]>([]);
+  const [catalog, setCatalog] = useState<SensorPreset[]>([]);
+  const [topics, setTopics] = useState<string[]>([]);
   const [form, setForm] = useState(emptyForm);
+  const [manualTopic, setManualTopic] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const topicRef = useRef<HTMLInputElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     load();
+    fetchCatalog().then(setCatalog).catch(() => setCatalog([]));
+    fetchTopics().then(setTopics).catch(() => setTopics([]));
   }, []);
 
   async function load() {
@@ -32,6 +47,58 @@ export function AdminPage() {
     else { setError(msg); setTimeout(() => setError(''), 4000); }
   }
 
+  // Пресеты из каталога, которые ещё не добавлены
+  const availablePresets = catalog.filter(p => !sensors.some(s => s.topic === p.topic));
+
+  function selectPreset(topic: string) {
+    const preset = catalog.find(p => p.topic === topic);
+    if (preset) {
+      setForm({
+        topic: preset.topic,
+        name: preset.name,
+        unit: preset.unit,
+        description: preset.description,
+      });
+    }
+  }
+
+  // Доступные топики на сервисе, ещё не привязанные к датчику.
+  // Текущий выбранный/редактируемый топик всегда оставляем в списке.
+  const registeredTopics = new Set(sensors.map(s => s.topic));
+  const freeTopics = topics.filter(t => !registeredTopics.has(t));
+  const topicOptions =
+    form.topic && !freeTopics.includes(form.topic) ? [form.topic, ...freeTopics] : freeTopics;
+
+  // Выбор топика в select: подставляем метаданные из каталога в пустые поля
+  function selectTopic(topic: string) {
+    const preset = catalog.find(p => p.topic === topic);
+    setForm(f => ({
+      ...f,
+      topic,
+      name: f.name || (preset?.name ?? ''),
+      unit: f.unit || (preset?.unit ?? ''),
+      description: f.description || (preset?.description ?? ''),
+    }));
+  }
+
+  function startEdit(sensor: Sensor) {
+    setEditingId(sensor.id);
+    setManualTopic(false);
+    setForm({
+      topic: sensor.topic,
+      name: sensor.name,
+      unit: sensor.unit,
+      description: sensor.description ?? '',
+    });
+    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setManualTopic(false);
+    setForm(emptyForm);
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.topic.trim() || !form.name.trim() || !form.unit.trim()) {
@@ -40,16 +107,23 @@ export function AdminPage() {
     }
     setSubmitting(true);
     try {
-      await createSensor({
+      const payload = {
         topic: form.topic.trim(),
         name: form.name.trim(),
         unit: form.unit.trim(),
         description: form.description.trim() || undefined,
-      });
+      };
+      if (editingId) {
+        await updateSensor(editingId, payload);
+        flash('Датчик обновлён', 'ok');
+      } else {
+        await createSensor(payload);
+        flash('Датчик добавлен', 'ok');
+      }
       setForm(emptyForm);
+      setEditingId(null);
       topicRef.current?.focus();
       await load();
-      flash('Датчик добавлен', 'ok');
     } catch (e: unknown) {
       flash(e instanceof Error ? e.message : 'Ошибка', 'err');
     } finally {
@@ -62,6 +136,7 @@ export function AdminPage() {
     setDeletingId(sensor.id);
     try {
       await deleteSensor(sensor.id);
+      if (editingId === sensor.id) cancelEdit();
       await load();
       flash('Датчик удалён', 'ok');
     } catch {
@@ -70,6 +145,8 @@ export function AdminPage() {
       setDeletingId(null);
     }
   }
+
+  const isEditing = editingId !== null;
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-8 space-y-8">
@@ -84,24 +161,80 @@ export function AdminPage() {
         </div>
       )}
 
-      {/* Add form */}
+      {/* Add / edit form */}
       <section>
         <h2 className="text-gray-500 text-xs uppercase tracking-widest mb-4 font-medium">
-          Добавить датчик
+          {isEditing ? 'Изменить датчик' : 'Добавить датчик'}
         </h2>
         <form
+          ref={formRef}
           onSubmit={handleSubmit}
           className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 space-y-4"
         >
+          {/* Быстрый выбор из каталога (только при добавлении) */}
+          {!isEditing && availablePresets.length > 0 && (
+            <Field label="Выбрать из доступных датчиков">
+              <select
+                value=""
+                onChange={e => selectPreset(e.target.value)}
+                className="w-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500"
+              >
+                <option value="" disabled>
+                  — выберите датчик из каталога —
+                </option>
+                {availablePresets.map(p => (
+                  <option key={p.topic} value={p.topic}>
+                    {p.name} ({p.topic})
+                  </option>
+                ))}
+              </select>
+            </Field>
+          )}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="MQTT Topic *">
-              <input
-                ref={topicRef}
-                value={form.topic}
-                onChange={e => setForm(f => ({ ...f, topic: e.target.value }))}
-                placeholder="sensor/temperature/room1"
-                className={inputCls}
-              />
+              {manualTopic ? (
+                <div className="flex gap-2">
+                  <input
+                    ref={topicRef}
+                    value={form.topic}
+                    onChange={e => setForm(f => ({ ...f, topic: e.target.value }))}
+                    placeholder="sensor/temperature/room1"
+                    className={inputCls}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setManualTopic(false)}
+                    title="Выбрать из списка"
+                    className="shrink-0 px-3 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"
+                  >
+                    ☰
+                  </button>
+                </div>
+              ) : (
+                <select
+                  value={form.topic}
+                  onChange={e => {
+                    if (e.target.value === '__manual__') {
+                      setManualTopic(true);
+                      setForm(f => ({ ...f, topic: '' }));
+                      return;
+                    }
+                    selectTopic(e.target.value);
+                  }}
+                  className={inputCls}
+                >
+                  <option value="" disabled>
+                    — выберите топик с сервиса —
+                  </option>
+                  {topicOptions.map(t => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                  <option value="__manual__">✎ Ввести вручную…</option>
+                </select>
+              )}
             </Field>
             <Field label="Название *">
               <input
@@ -141,13 +274,26 @@ export function AdminPage() {
             </Field>
           </div>
 
-          <div className="flex justify-end pt-2">
+          <div className="flex justify-end gap-2 pt-2">
+            {isEditing && (
+              <button
+                type="button"
+                onClick={cancelEdit}
+                className="px-5 py-2 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm font-medium rounded-lg transition-colors"
+              >
+                Отмена
+              </button>
+            )}
             <button
               type="submit"
               disabled={submitting}
               className="px-5 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
             >
-              {submitting ? 'Сохранение...' : 'Добавить датчик'}
+              {submitting
+                ? 'Сохранение...'
+                : isEditing
+                  ? 'Сохранить изменения'
+                  : 'Добавить датчик'}
             </button>
           </div>
         </form>
@@ -165,7 +311,11 @@ export function AdminPage() {
             {sensors.map(s => (
               <li
                 key={s.id}
-                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-5 py-4 flex items-center justify-between gap-4"
+                className={`bg-white dark:bg-gray-800 border rounded-xl px-5 py-4 flex items-center justify-between gap-4 transition-colors ${
+                  editingId === s.id
+                    ? 'border-blue-500'
+                    : 'border-gray-200 dark:border-gray-700'
+                }`}
               >
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
@@ -179,13 +329,21 @@ export function AdminPage() {
                     <p className="text-gray-500 dark:text-gray-600 text-xs mt-1 truncate">{s.description}</p>
                   )}
                 </div>
-                <button
-                  onClick={() => handleDelete(s)}
-                  disabled={deletingId === s.id}
-                  className="flex-shrink-0 px-3 py-1.5 text-xs text-red-500 dark:text-red-400 border border-red-300 dark:border-red-900 hover:bg-red-50 dark:hover:bg-red-900/30 disabled:opacity-40 rounded-lg transition-colors"
-                >
-                  {deletingId === s.id ? '...' : 'Удалить'}
-                </button>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <button
+                    onClick={() => startEdit(s)}
+                    className="px-3 py-1.5 text-xs text-blue-600 dark:text-blue-400 border border-blue-300 dark:border-blue-900 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+                  >
+                    Изменить
+                  </button>
+                  <button
+                    onClick={() => handleDelete(s)}
+                    disabled={deletingId === s.id}
+                    className="px-3 py-1.5 text-xs text-red-500 dark:text-red-400 border border-red-300 dark:border-red-900 hover:bg-red-50 dark:hover:bg-red-900/30 disabled:opacity-40 rounded-lg transition-colors"
+                  >
+                    {deletingId === s.id ? '...' : 'Удалить'}
+                  </button>
+                </div>
               </li>
             ))}
           </ul>

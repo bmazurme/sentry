@@ -31,14 +31,36 @@ export function Sidebar({ connected, theme, onToggleTheme }: Props) {
     }
   }, [collapsed]);
 
-  const rowIdle =
-    'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white';
-  // В свёрнутом виде пункт — квадрат 40×40 по центру (иконка по центру, активный —
-  // синий квадрат); в развёрнутом — строка на всю ширину с подписью.
-  const rowBase = collapsed
-    ? 'w-10 h-10 mx-auto flex items-center justify-center rounded-lg text-sm transition-colors'
-    : 'w-full h-10 flex items-center gap-3 px-3 rounded-lg text-sm transition-colors';
-  const label = 'whitespace-nowrap';
+  // Строка пункта: в свёрнутом виде — только центрированная иконка-квадрат,
+  // в развёрнутом — строка на всю ширину с подписью.
+  const rowCollapsed = 'group w-full flex justify-center py-1';
+  const rowExpanded =
+    'group w-full flex items-center gap-2.5 pl-1 pr-3 h-10 rounded-lg text-sm transition-colors';
+
+  // Квадрат-обёртка иконки того же размера, что логотип Sentry (w-8 h-8).
+  // Синим подсвечивается ТОЛЬКО иконка активной страницы.
+  const iconBox = (active: boolean) => {
+    const base = 'w-8 h-8 shrink-0 flex items-center justify-center rounded-md transition-colors';
+    if (active) return `${base} bg-blue-600 text-white`;
+    const idle = 'text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white';
+    // В свёрнутом виде фона-подсветки у строки нет — даём ховер прямо на квадрат
+    return collapsed
+      ? `${base} ${idle} group-hover:bg-gray-100 dark:group-hover:bg-gray-800`
+      : `${base} ${idle}`;
+  };
+
+  // Строка активного пункта в развёрнутом виде: более светлый оттенок фона и синий текст.
+  const navRow = (active: boolean) =>
+    collapsed
+      ? rowCollapsed
+      : `${rowExpanded} ${
+          active ? 'bg-blue-50 dark:bg-blue-950/50' : 'hover:bg-gray-100 dark:hover:bg-gray-800'
+        }`;
+
+  const navLabel = (active: boolean) =>
+    active
+      ? 'whitespace-nowrap text-blue-700 dark:text-blue-300 font-medium'
+      : 'whitespace-nowrap text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white';
 
   return (
     <aside
@@ -56,7 +78,7 @@ export function Sidebar({ connected, theme, onToggleTheme }: Props) {
           S
         </div>
         {!collapsed && (
-          <span className={`text-gray-900 dark:text-white font-semibold tracking-tight ${label}`}>
+          <span className="text-gray-900 dark:text-white font-semibold tracking-tight whitespace-nowrap">
             Sentry
           </span>
         )}
@@ -72,14 +94,16 @@ export function Sidebar({ connected, theme, onToggleTheme }: Props) {
               to={tab.to}
               end={tab.to === '/'}
               title={collapsed ? tab.label : undefined}
-              className={({ isActive }) =>
-                `${rowBase} ${isActive ? 'bg-blue-600 text-white hover:bg-blue-600' : rowIdle}`
-              }
+              className={({ isActive }) => navRow(isActive)}
             >
-              <span className="shrink-0">
-                <Icon />
-              </span>
-              {!collapsed && <span className={label}>{tab.label}</span>}
+              {({ isActive }) => (
+                <>
+                  <span className={iconBox(isActive)}>
+                    <Icon />
+                  </span>
+                  {!collapsed && <span className={navLabel(isActive)}>{tab.label}</span>}
+                </>
+              )}
             </NavLink>
           );
         })}
@@ -89,19 +113,17 @@ export function Sidebar({ connected, theme, onToggleTheme }: Props) {
       <div className="p-2 border-t border-gray-200 dark:border-gray-800 space-y-1">
         {/* Connection status */}
         <div
-          className={`text-sm text-gray-500 ${
-            collapsed
-              ? 'w-10 h-10 mx-auto flex items-center justify-center'
-              : 'h-10 flex items-center gap-3 px-3'
-          }`}
+          className={`${collapsed ? rowCollapsed : rowExpanded} text-gray-500`}
           title={collapsed ? (connected ? 'Online' : 'Offline') : undefined}
         >
-          <span
-            className={`w-2 h-2 shrink-0 rounded-full transition-colors ${
-              connected ? 'bg-green-400' : 'bg-red-500 animate-pulse'
-            }`}
-          />
-          {!collapsed && <span className={label}>{connected ? 'Online' : 'Offline'}</span>}
+          <span className="w-8 h-8 shrink-0 flex items-center justify-center">
+            <span
+              className={`w-2 h-2 rounded-full transition-colors ${
+                connected ? 'bg-green-400' : 'bg-red-500 animate-pulse'
+              }`}
+            />
+          </span>
+          {!collapsed && <span className="whitespace-nowrap">{connected ? 'Online' : 'Offline'}</span>}
         </div>
 
         {/* Theme toggle */}
@@ -109,11 +131,11 @@ export function Sidebar({ connected, theme, onToggleTheme }: Props) {
           onClick={onToggleTheme}
           title={collapsed ? (theme === 'dark' ? 'Светлая тема' : 'Тёмная тема') : undefined}
           aria-label="Переключить тему"
-          className={`${rowBase} ${rowIdle}`}
+          className={navRow(false)}
         >
-          <span className="shrink-0">{theme === 'dark' ? <SunIcon /> : <MoonIcon />}</span>
+          <span className={iconBox(false)}>{theme === 'dark' ? <SunIcon /> : <MoonIcon />}</span>
           {!collapsed && (
-            <span className={label}>{theme === 'dark' ? 'Светлая тема' : 'Тёмная тема'}</span>
+            <span className={navLabel(false)}>{theme === 'dark' ? 'Светлая тема' : 'Тёмная тема'}</span>
           )}
         </button>
 
@@ -122,12 +144,12 @@ export function Sidebar({ connected, theme, onToggleTheme }: Props) {
           onClick={() => setCollapsed(c => !c)}
           title={collapsed ? 'Развернуть' : 'Свернуть'}
           aria-label={collapsed ? 'Развернуть меню' : 'Свернуть меню'}
-          className={`${rowBase} ${rowIdle}`}
+          className={navRow(false)}
         >
-          <span className="shrink-0">
+          <span className={iconBox(false)}>
             <ChevronIcon collapsed={collapsed} />
           </span>
-          {!collapsed && <span className={label}>Свернуть</span>}
+          {!collapsed && <span className={navLabel(false)}>Свернуть</span>}
         </button>
       </div>
     </aside>

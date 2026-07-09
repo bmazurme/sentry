@@ -1,23 +1,20 @@
 import { useEffect, useState } from 'react';
+import { NavLink } from 'react-router-dom';
 import { Theme } from '../hooks/useTheme';
-
-export type Page = 'dashboard' | 'admin' | 'emulator';
 
 interface Props {
   connected: boolean;
-  page: Page;
-  onNavigate: (p: Page) => void;
   theme: Theme;
   onToggleTheme: () => void;
 }
 
-const TABS: { id: Page; label: string; icon: () => JSX.Element }[] = [
-  { id: 'dashboard', label: 'Мониторинг', icon: IconDashboard },
-  { id: 'emulator', label: 'Эмулятор', icon: IconEmulator },
-  { id: 'admin', label: 'Датчики', icon: IconSensors },
+const TABS: { to: string; label: string; icon: () => JSX.Element }[] = [
+  { to: '/', label: 'Мониторинг', icon: IconDashboard },
+  { to: '/emulator', label: 'Эмулятор', icon: IconEmulator },
+  { to: '/admin', label: 'Датчики', icon: IconSensors },
 ];
 
-export function Sidebar({ connected, page, onNavigate, theme, onToggleTheme }: Props) {
+export function Sidebar({ connected, theme, onToggleTheme }: Props) {
   const [collapsed, setCollapsed] = useState(() => {
     try {
       return localStorage.getItem('sidebar-collapsed') === '1';
@@ -68,22 +65,22 @@ export function Sidebar({ connected, page, onNavigate, theme, onToggleTheme }: P
       {/* Nav */}
       <nav className="flex-1 p-2 space-y-1 overflow-y-auto overflow-x-hidden">
         {TABS.map(tab => {
-          const active = page === tab.id;
           const Icon = tab.icon;
           return (
-            <button
-              key={tab.id}
-              onClick={() => onNavigate(tab.id)}
+            <NavLink
+              key={tab.to}
+              to={tab.to}
+              end={tab.to === '/'}
               title={collapsed ? tab.label : undefined}
-              className={`${rowBase} ${
-                active ? 'bg-blue-600 text-white hover:bg-blue-600' : rowIdle
-              }`}
+              className={({ isActive }) =>
+                `${rowBase} ${isActive ? 'bg-blue-600 text-white hover:bg-blue-600' : rowIdle}`
+              }
             >
               <span className="shrink-0">
                 <Icon />
               </span>
               {!collapsed && <span className={label}>{tab.label}</span>}
-            </button>
+            </NavLink>
           );
         })}
       </nav>

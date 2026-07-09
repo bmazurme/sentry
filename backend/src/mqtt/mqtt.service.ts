@@ -7,6 +7,7 @@ import { EventsGateway } from '../gateway/events.gateway';
 export class MqttService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(MqttService.name);
   private client: mqtt.MqttClient;
+  private readonly seenTopics = new Set<string>();
 
   constructor(
     private readonly influx: InfluxService,
@@ -26,6 +27,7 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
     });
 
     this.client.on('message', (topic, payload) => {
+      this.seenTopics.add(topic);
       const value = parseFloat(payload.toString());
       if (isNaN(value)) return;
       this.influx.write(topic, value);
@@ -39,6 +41,11 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
     if (this.client?.connected) {
       this.client.publish(topic, value);
     }
+  }
+
+  // Топики, которые брокер реально присылал с момента запуска
+  getSeenTopics(): string[] {
+    return [...this.seenTopics];
   }
 
   onModuleDestroy() {

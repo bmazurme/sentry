@@ -9,6 +9,7 @@ import {
   updateSensor,
 } from '../api/sensors';
 import { Sensor } from '../types';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 
 const UNIT_PRESETS = ['ADC', 'bool', 'count', 'dB', '°C', '%', 'Pa', 'lux', 'ppm', 'm/s²'];
 
@@ -23,6 +24,7 @@ export function AdminPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmTarget, setConfirmTarget] = useState<Sensor | null>(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const topicRef = useRef<HTMLInputElement>(null);
@@ -131,14 +133,16 @@ export function AdminPage() {
     }
   }
 
-  async function handleDelete(sensor: Sensor) {
-    if (!confirm(`Удалить датчик "${sensor.name}"?`)) return;
+  async function confirmDelete() {
+    const sensor = confirmTarget;
+    if (!sensor) return;
     setDeletingId(sensor.id);
     try {
       await deleteSensor(sensor.id);
       if (editingId === sensor.id) cancelEdit();
       await load();
       flash('Датчик удалён', 'ok');
+      setConfirmTarget(null);
     } catch {
       flash('Не удалось удалить', 'err');
     } finally {
@@ -337,7 +341,7 @@ export function AdminPage() {
                     Изменить
                   </button>
                   <button
-                    onClick={() => handleDelete(s)}
+                    onClick={() => setConfirmTarget(s)}
                     disabled={deletingId === s.id}
                     className="px-3 py-1.5 text-xs text-red-500 dark:text-red-400 border border-red-300 dark:border-red-900 hover:bg-red-50 dark:hover:bg-red-900/30 disabled:opacity-40 rounded-lg transition-colors"
                   >
@@ -349,6 +353,22 @@ export function AdminPage() {
           </ul>
         )}
       </section>
+
+      <ConfirmDialog
+        open={confirmTarget !== null}
+        danger
+        title="Удалить датчик?"
+        message={
+          confirmTarget
+            ? `Датчик «${confirmTarget.name}» (${confirmTarget.topic}) будет удалён. История в InfluxDB сохранится.`
+            : undefined
+        }
+        confirmLabel="Удалить"
+        cancelLabel="Отмена"
+        busy={deletingId !== null}
+        onConfirm={confirmDelete}
+        onCancel={() => setConfirmTarget(null)}
+      />
     </div>
   );
 }

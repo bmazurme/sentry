@@ -37,7 +37,42 @@ export async function createSensor(data: {
   return res.json();
 }
 
+export async function updateSensor(
+  id: string,
+  data: { topic: string; name: string; unit: string; description?: string },
+): Promise<Sensor> {
+  const res = await fetch(`/api/sensors/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message ?? 'Failed to update sensor');
+  }
+  return res.json();
+}
+
 export async function deleteSensor(id: string): Promise<void> {
   const res = await fetch(`/api/sensors/${id}`, { method: 'DELETE' });
   if (!res.ok) throw new Error('Failed to delete sensor');
+}
+
+export interface SensorPreset {
+  topic: string;
+  name: string;
+  unit: string;
+  description: string;
+}
+
+export async function fetchCatalog(): Promise<SensorPreset[]> {
+  const res = await fetch('/api/sensors/catalog');
+  if (!res.ok) throw new Error('Failed to fetch catalog');
+  return res.json();
+}
+
+export async function fetchTopics(): Promise<string[]> {
+  const res = await fetch('/api/sensors/topics');
+  if (!res.ok) throw new Error('Failed to fetch topics');
+  return res.json();
 }

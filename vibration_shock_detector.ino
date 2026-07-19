@@ -38,8 +38,8 @@
 #include <Adafruit_NeoPixel.h>
 
 // ---------- Настройки WiFi и MQTT (заполните своими данными) ----------
-const char* ssid        = "Ent";
-const char* password    = "";
+const char* ssid        = "ssid";
+const char* password    = "password";
 const char* mqtt_server = "192.168.50.182";
 const int   mqtt_port   = 1883;
 const char* client_id   = "ESP32S3_SHOCK";

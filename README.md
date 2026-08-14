@@ -4,26 +4,19 @@
 публикуют показания по MQTT, backend на NestJS складывает их в InfluxDB и
 раздаёт на фронтенд по WebSocket, а React-дашборд рисует графики.
 
-Поток данных:
+## Архитектура
+
+Поток данных идёт от прошивок на ESP32 через MQTT-брокер к backend'у, который
+пишет показания в InfluxDB и транслирует их на фронтенд по WebSocket в
+реальном времени; метаданные самих датчиков (регистрация, каталог) хранятся
+отдельно в Postgres.
 
 ```
 ESP32 (датчики) → MQTT (Mosquitto) → backend (NestJS) → InfluxDB + WebSocket → frontend (React)
                                                      ↘ Postgres (метаданные датчиков)
 ```
 
-## Стек
-
-| Компонент | Технология |
-|---|---|
-| Контроллер | ESP32 + датчики SW‑420, 801S, MAX4466 |
-| Брокер сообщений | Mosquitto (MQTT) |
-| Backend | NestJS (REST API + WebSocket, `mqtt`, `typeorm`) |
-| Хранилище показаний | InfluxDB 2 |
-| Хранилище метаданных | PostgreSQL |
-| Дашборд | React + Vite + Tailwind + Recharts, Socket.IO client |
-| Доп. дашборды | Grafana |
-
-## Структура репозитория
+Структура репозитория:
 
 ```
 backend/      NestJS backend (MQTT, InfluxDB, Postgres, WebSocket, REST API)
@@ -35,7 +28,44 @@ docker-compose.yml         Запуск всего стека одной ком�
 DEPLOY_RASPBERRY_PI.md     Инструкция по развёртыванию на Raspberry Pi 5
 ```
 
-## Быстрый старт (Docker Compose)
+## Стек
+
+| Компонент | Технология |
+|---|---|
+| Контроллер | ESP32 (S3, D/WROOM‑32) + датчики SW‑420, 801S, MAX4466, INMP441 |
+| Прошивки | Arduino/ESP‑IDF (C/C++), `PubSubClient`, `Adafruit NeoPixel`, `driver/i2s.h` |
+| Брокер сообщений | Mosquitto (MQTT) |
+| Backend | NestJS + TypeScript (REST API + WebSocket, `mqtt`, `typeorm`, `socket.io`) |
+| Хранилище показаний | InfluxDB 2 |
+| Хранилище метаданных | PostgreSQL |
+| Дашборд | React + TypeScript, Vite, Tailwind, Recharts, `react-router-dom`, Socket.IO client |
+| Доп. дашборды | Grafana |
+| Контейнеризация | Docker Compose (nginx — раздача собранного фронтенда в проде) |
+
+## Ключевые возможности
+
+- **Несколько независимых узлов одновременно** — прошивки для разных плат
+  (ESP32‑S3, ESP32‑D) и датчиков (SW‑420, MAX4466, INMP441, пьезодатчик)
+  публикуют в разные MQTT-топики (`shock`/`shock2`/`vibration`/`noise`) и не
+  перезаписывают показания друг друга — новое устройство достаточно
+  подключить к тому же брокеру, регистрировать топик вручную не обязательно
+  (см. [Контроллеры и прошивки](#контроллеры-и-прошивки)).
+- **Показания в реальном времени** — backend транслирует каждое новое
+  значение на фронтенд по WebSocket (`sensor_update`) сразу после приёма из
+  MQTT, без поллинга.
+- **Хранение и история** — временные ряды показаний живут в InfluxDB
+  (`GET /api/sensors/:id/history`), метаданные и регистрация датчиков — в
+  Postgres.
+- **Эмулятор датчиков** — `GET/POST /api/emulator/*` позволяет разрабатывать
+  и тестировать backend/frontend без реального ESP32.
+- **Доп. визуализация в Grafana** — конфиг в `grafana/` поднимает дашборды
+  поверх тех же данных InfluxDB.
+- **Готовое развёртывание** — весь стек поднимается одной командой через
+  Docker Compose, включая инструкцию для Raspberry Pi 5.
+
+## Развёртывание
+
+### Docker Compose
 
 ```bash
 docker compose up -d --build
@@ -54,7 +84,7 @@ docker compose up -d --build
 Подробная инструкция по развёртыванию на Raspberry Pi 5 — в
 [DEPLOY_RASPBERRY_PI.md](DEPLOY_RASPBERRY_PI.md).
 
-## Локальная разработка
+### Локальная разработка
 
 Backend:
 
